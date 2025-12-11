@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Brain, LayoutDashboard, ListTodo, LogOut, Menu, Sparkles, User } from "lucide-react"
 import { useState } from "react"
 
@@ -30,7 +31,9 @@ export function MobileNav() {
           <span className="font-semibold">ML Tasks</span>
         </div>
 
-        <Sheet open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
               <Menu className="h-5 w-5" />
@@ -88,6 +91,7 @@ export function MobileNav() {
             </div>
           </SheetContent>
         </Sheet>
+        </div>
       </div>
     </div>
   )

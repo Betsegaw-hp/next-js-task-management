@@ -171,7 +171,7 @@ export function TaskListItem({ task, onEdit, onDelete, onStatusChange, onRetask 
           ) : nextStatus() && (
             <DropdownMenuItem onClick={() => onStatusChange(task.id, nextStatus()!)}>
               <ArrowRight className="h-4 w-4 mr-2" />
-              Move to {formatStatus(nextStatus()!)}
+              Mark as {formatStatus(nextStatus()!)}
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />

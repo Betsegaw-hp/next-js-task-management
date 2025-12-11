@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { type Task, mlApi } from "@/lib/api"
 import { format, formatDistanceToNow, isPast } from "date-fns"
-import { Calendar, Clock, MoreVertical, Pencil, Trash2, Sparkles, ArrowRight, Loader2, RotateCcw } from "lucide-react"
+import { Calendar, Clock, MoreVertical, Pencil, Trash2, Sparkles, ArrowRight, Loader2, RotateCcw, Check, CheckCircle, CheckCheckIcon, AlarmClockCheck } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface TaskCardProps {
@@ -84,8 +84,17 @@ function getStatusColor(status: string): string {
   }
 }
 
-function formatStatus(status: string): string {
-  return status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())
+function formatStatus(status: string): { label: string; icon: typeof Clock } {
+  const label = status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())
+  
+  switch (status) {
+    case "completed":
+      return { label, icon: CheckCheckIcon }
+    case "in_progress":
+      return { label, icon: AlarmClockCheck }
+    default:
+      return { label, icon: Clock }
+  }
 }
 
 const statusOrder: Task["status"][] = ["pending", "in_progress", "completed"]
@@ -185,7 +194,15 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange, onRetask }: T
             P{task.priority} - {getPriorityLabel(task.priority)}
           </Badge>
           <Badge variant="outline" className={getStatusColor(task.status)}>
-            {formatStatus(task.status)}
+            {(() => {
+              const { label, icon: Icon } = formatStatus(task.status)
+              return (
+                <>
+                <Icon className="h-3 w-3 mr-1" />
+                Mark as {label}
+                </>
+              )
+              })()}
           </Badge>
         </div>
 
@@ -212,7 +229,7 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange, onRetask }: T
 
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs text-muted-foreground">
-            {task.completed ? "Completed" : `Status: ${formatStatus(task.status)}`}
+            {task.completed ? "Completed" : `Status: ${formatStatus(task.status)!.label}`}
           </span>
 
           {isOverdue && onRetask ? (
@@ -232,8 +249,15 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange, onRetask }: T
               className="text-xs h-7"
               onClick={() => onStatusChange(task.id, nextStatus()!)}
             >
-              Move to {formatStatus(nextStatus()!)}
-              <ArrowRight className="h-3 w-3 ml-1" />
+              {(() => {
+              const { label, icon: Icon } = formatStatus(nextStatus()!)
+              return (
+                <>
+                <Icon className="h-3 w-3 mr-1" />
+                Mark as {label}
+                </>
+              )
+              })()}
             </Button>
           )}
         </div>

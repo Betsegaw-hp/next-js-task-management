@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Brain, LayoutDashboard, ListTodo, LogOut, Sparkles, User } from "lucide-react"
 
 const navigation = [
@@ -57,6 +58,7 @@ export function Sidebar() {
               <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.username}</p>
               <p className="text-xs text-sidebar-foreground/60 truncate">{user?.email}</p>
             </div>
+            <ThemeToggle />
           </div>
           <Button
             variant="ghost"
