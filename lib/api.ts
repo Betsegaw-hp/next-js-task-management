@@ -33,11 +33,26 @@ export interface User {
   full_name?: string | null
   avatar_url?: string | null
   oauth_provider?: string | null
+  created_at?: string | null
 }
 
 export interface OAuthProvider {
   name: string
   url: string
+}
+
+export interface LinkedAccount {
+  provider: string
+  linked: boolean
+  email?: string | null
+}
+
+export interface UserUpdate {
+  username?: string
+  email?: string
+  full_name?: string
+  current_password?: string
+  new_password?: string
 }
 
 // TaskStatus enum
@@ -292,6 +307,33 @@ export const authApi = {
 
   getOAuthUrl(provider: string): string {
     return `${API_BASE_URL}/auth/oauth/${provider}`
+  },
+
+  async updateProfile(data: UserUpdate): Promise<User> {
+    return apiRequest<User>("/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  },
+
+  async setPassword(password: string): Promise<User> {
+    return apiRequest<User>(`/auth/profile/set-password?password=${encodeURIComponent(password)}`, {
+      method: "POST",
+    })
+  },
+
+  async getLinkedAccounts(): Promise<LinkedAccount[]> {
+    return apiRequest<LinkedAccount[]>("/auth/profile/linked-accounts")
+  },
+
+  async unlinkOAuth(): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>("/auth/profile/unlink-oauth", {
+      method: "DELETE",
+    })
+  },
+
+  async getLinkOAuthUrl(provider: string): Promise<{ authorization_url: string }> {
+    return apiRequest<{ authorization_url: string }>(`/auth/profile/link-oauth/${provider}`)
   },
 }
 

@@ -6,12 +6,13 @@ import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Brain, LayoutDashboard, ListTodo, LogOut, Sparkles, User } from "lucide-react"
+import { Brain, LayoutDashboard, ListTodo, LogOut, Sparkles, User, Settings } from "lucide-react"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
   { name: "ML Insights", href: "/dashboard/ml", icon: Sparkles },
+  { name: "Profile", href: "/dashboard/profile", icon: Settings },
 ]
 
 export function Sidebar() {
