@@ -99,7 +99,7 @@ export default function RegisterPage() {
             <CardDescription>Enter your details to create your account</CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input

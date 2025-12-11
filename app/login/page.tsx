@@ -91,7 +91,7 @@ export default function LoginPage() {
             <CardDescription>Enter your credentials to access your dashboard</CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
