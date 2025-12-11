@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { type Task, mlApi } from "@/lib/api"
 import { format, formatDistanceToNow, isPast } from "date-fns"
-import { Calendar, Clock, MoreVertical, Pencil, Trash2, Sparkles, ArrowRight, Loader2 } from "lucide-react"
+import { Calendar, Clock, MoreVertical, Pencil, Trash2, Sparkles, ArrowRight, Loader2, RotateCcw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface TaskCardProps {
@@ -21,9 +21,9 @@ interface TaskCardProps {
   onEdit: (task: Task) => void
   onDelete: (taskId: number) => void
   onStatusChange: (taskId: number, status: Task["status"]) => void
+  onRetask?: (task: Task) => void
 }
 
-// Safe date formatter that handles null/undefined/invalid dates
 function safeFormatDistance(dateString: string | null | undefined): string {
   if (!dateString) return "Recently"
   
@@ -61,7 +61,6 @@ function safeIsPast(dateString: string | null | undefined): boolean {
 }
 
 function getPriorityColor(priority: number): string {
-  // Backend priority scale is 0-2 (0=low, 1=medium, 2=high)
   if (priority === 0) return "bg-[var(--priority-low)]/20 text-[var(--priority-low)] border-[var(--priority-low)]/30"
   if (priority === 1)
     return "bg-[var(--priority-medium)]/20 text-[var(--priority-medium)] border-[var(--priority-medium)]/30"
@@ -69,7 +68,6 @@ function getPriorityColor(priority: number): string {
 }
 
 function getPriorityLabel(priority: number): string {
-  // Backend priority scale is 0-2 (0=low, 1=medium, 2=high)
   if (priority === 0) return "Low"
   if (priority === 1) return "Medium"
   return "High"
@@ -92,7 +90,7 @@ function formatStatus(status: string): string {
 
 const statusOrder: Task["status"][] = ["pending", "in_progress", "completed"]
 
-export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onDelete, onStatusChange, onRetask }: TaskCardProps) {
   const [predicting, setPredicting] = useState(false)
   const [prediction, setPrediction] = useState<{ hours: number; confidence: number } | null>(null)
   const { toast } = useToast()
@@ -114,20 +112,17 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
         ? Math.max(0, Math.ceil((new Date(task.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
         : undefined
 
-      // Priority is already 0-2 (0=low, 1=medium, 2=high), use directly
       const backendPriority = task.priority
 
       const result = await mlApi.predictCompletionTime({
         description_length: task.description?.length || 0,
         priority: backendPriority,
-        user_experience: 1, // Default to medium experience
-        is_complex: (task.description?.length || 0) > 100, // Assume complex if description is long
+        user_experience: task.user_experience || 1,
+        is_complex: (task.description?.length || 0) > 100,
         days_until_due: daysUntilDue,
         status: task.status,
       })
 
-      // Note: Backend returns predicted_hours and input_features (no confidence)
-      // Using a default confidence display
       setPrediction({ hours: result.predicted_hours, confidence: 0.85 })
     } catch {
       toast({
@@ -220,7 +215,17 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
             {task.completed ? "Completed" : `Status: ${formatStatus(task.status)}`}
           </span>
 
-          {nextStatus() && (
+          {isOverdue && onRetask ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs h-7 text-destructive hover:text-destructive"
+              onClick={() => onRetask(task)}
+            >
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Retask
+            </Button>
+          ) : nextStatus() && (
             <Button
               variant="ghost"
               size="sm"

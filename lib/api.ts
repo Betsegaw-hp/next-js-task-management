@@ -1,8 +1,5 @@
-// API client for ML Task Management Backend
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
 
-// Cookie utility functions
 function setCookie(name: string, value: string, days: number = 7): void {
   if (typeof document === "undefined") return
   const expires = new Date()
@@ -28,8 +25,6 @@ function deleteCookie(name: string): void {
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`
 }
 
-// ============ Types (matching backend OpenAPI spec) ============
-
 export interface User {
   id: number
   username: string
@@ -40,33 +35,32 @@ export interface User {
 // TaskStatus enum
 export type TaskStatus = "pending" | "in_progress" | "completed"
 export interface TaskPriority {
-  high: number               // 0.0 - 1.0 confidence score
-  medium: number             // 0.0 - 1.0 confidence score
-  low: number                // 0.0 - 1.0 confidence score
+  high: number
+  medium: number
+  low: number
 }
 
-// POST /tasks/ - Request (TaskCreate schema)
 export interface TaskCreate {
-  title: string                   // 1-100 chars, required
-  description?: string | null     // max 500 chars, optional
-  priority: number                // 0=low, 1=medium, 2=high
-  due_date?: string | null        // datetime string, optional
-  status?: TaskStatus | null      // default "pending"
+  title: string
+  description?: string | null
+  priority: number
+  due_date?: string | null
+  status?: TaskStatus | null
+  user_experience?: number
 }
 
-// GET /tasks/, GET /tasks/{id}, etc. - Response (TaskResponse schema)
 export interface Task {
-  id: number                      // required
-  title: string                   // required
-  description: string | null      // may be null
-  priority: number                // 0=low, 1=medium, 2=high
-  due_date: string | null         // datetime string or null
-  status: TaskStatus              // required
-  owner_id: number | null         // may be null
-  completed: boolean              // required
+  id: number
+  title: string
+  description: string | null
+  priority: number
+  due_date: string | null
+  status: TaskStatus
+  owner_id: number | null
+  completed: boolean
+  user_experience: number
 }
 
-// Legacy alias for backward compatibility
 export type CreateTaskInput = TaskCreate
 
 export interface LoginResponse {
@@ -74,76 +68,65 @@ export interface LoginResponse {
   token_type: string
 }
 
-// ============ ML Types (matching backend OpenAPI spec) ============
-
-// POST /ml/predict/completion-time - Request
 export interface CompletionTimePredictRequest {
-  description_length: number      // 1-1000, length of task description
-  priority: number                // 0=low, 1=medium, 2=high
-  user_experience: number         // user experience level
-  is_complex: boolean             // task complexity flag
-  days_until_due?: number         // optional: days until due date
-  status?: TaskStatus  // optional: task status
+  description_length: number
+  priority: number
+  user_experience: number
+  is_complex: boolean
+  days_until_due?: number
+  status?: TaskStatus
 }
 
-// POST /ml/predict/completion-time - Response
 export interface CompletionTimePredictResponse {
-  predicted_hours: number         // predicted completion time in hours
-  input_features: Record<string, unknown>  // features used for prediction
+  predicted_hours: number
+  input_features: Record<string, unknown>
 }
 
-// POST /ml/predict/priority - Request
 export interface PriorityPredictRequest {
-  text: string                    // task description text
-  days_until_due?: number         // optional: days until due date
-  status?: TaskStatus  // optional: task status
+  text: string
+  days_until_due?: number
+  status?: TaskStatus
 }
 
-// POST /ml/predict/priority - Response
 export interface PriorityPredictResponse {
-  predicted_priority: string      // "low", "medium", or "high"
-  confidence: TaskPriority              // 0.0 - 1.0 confidence score
+  predicted_priority: string
+  confidence: TaskPriority
 }
 
-// POST /ml/predict/batch - Request
 export interface BatchCompletionTimeRequest {
-  tasks: CompletionTimePredictRequest[]  // max 100 tasks
+  tasks: CompletionTimePredictRequest[]
 }
 
-// POST /ml/predict/batch - Response
 export interface BatchCompletionTimeResponse {
-  predictions: number[]           // list of predicted hours
-  total_predicted_hours: number   // sum of all predictions
+  predictions: number[]
+  total_predicted_hours: number
 }
 
-// GET /ml/health - Response
 export interface MLHealthResponse {
-  status: string                  // overall ML service status
-  models_loaded: boolean          // whether all models are loaded
-  details: Record<string, unknown>  // detailed model info
+  status: string
+  models_loaded: boolean
+  details: Record<string, unknown>
 }
 
-// Token management (using cookies)
 export function getToken(): string | null {
   return getCookie("auth_token")
 }
 
 export function setToken(token: string): void {
-  setCookie("auth_token", token, 7) // 7 days expiry
+  setCookie("auth_token", token, 7)
 }
 
 export function removeToken(): void {
   deleteCookie("auth_token")
 }
 
-// Cookie consent management
 export function getCookieConsent(): boolean {
   return getCookie("cookie_consent") === "accepted"
 }
 
 export function setCookieConsent(accepted: boolean): void {
   if (accepted) {
-    setCookie("cookie_consent", "accepted", 365) // 1 year
+    setCookie("cookie_consent", "accepted", 365)
   }
 }
 
@@ -151,7 +134,6 @@ export function hasCookieConsentBeenAsked(): boolean {
   return getCookie("cookie_consent") !== null
 }
 
-// API helper
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
@@ -173,12 +155,10 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     throw new Error(error.detail || "Request failed")
   }
 
-  // Handle empty responses
   const text = await response.text()
   return text ? JSON.parse(text) : undefined as any
 }
 
-// Auth API
 export const authApi = {
   async register(username: string, email: string, password: string): Promise<User> {
     return apiRequest<User>("/auth/register", {
@@ -213,7 +193,6 @@ export const authApi = {
   },
 }
 
-// Tasks API
 export const tasksApi = {
   async list(params?: { skip?: number; limit?: number; status?: string }): Promise<Task[]> {
     const searchParams = new URLSearchParams()
@@ -238,7 +217,7 @@ export const tasksApi = {
 
   async update(id: number, task: Partial<CreateTaskInput>): Promise<Task> {
     return apiRequest<Task>(`/tasks/${id}`, {
-      method: "PATCH",  // Use PATCH for partial updates
+      method: "PATCH",
       body: JSON.stringify(task),
     })
   },
@@ -285,12 +264,7 @@ export const tasksApi = {
   },
 }
 
-// ML API (matching backend OpenAPI spec)
 export const mlApi = {
-  /**
-   * Predict completion time for a task
-   * POST /ml/predict/completion-time
-   */
   async predictCompletionTime(data: CompletionTimePredictRequest): Promise<CompletionTimePredictResponse> {
     return apiRequest<CompletionTimePredictResponse>("/ml/predict/completion-time", {
       method: "POST",
@@ -298,10 +272,6 @@ export const mlApi = {
     })
   },
 
-  /**
-   * Predict priority from task description text
-   * POST /ml/predict/priority
-   */
   async predictPriority(data: PriorityPredictRequest): Promise<PriorityPredictResponse> {
     return apiRequest<PriorityPredictResponse>("/ml/predict/priority", {
       method: "POST",
@@ -309,10 +279,6 @@ export const mlApi = {
     })
   },
 
-  /**
-   * Batch predict completion times for multiple tasks
-   * POST /ml/predict/batch
-   */
   async batchPredictCompletionTime(data: BatchCompletionTimeRequest): Promise<BatchCompletionTimeResponse> {
     return apiRequest<BatchCompletionTimeResponse>("/ml/predict/batch", {
       method: "POST",
@@ -320,16 +286,11 @@ export const mlApi = {
     })
   },
 
-  /**
-   * Check ML service health and model status
-   * GET /ml/health
-   */
   async getHealth(): Promise<MLHealthResponse> {
     return apiRequest<MLHealthResponse>("/ml/health")
   },
 }
 
-// Legacy aliases for backward compatibility
 export const MLCompletionPrediction = {} as CompletionTimePredictResponse
 export const MLPriorityPrediction = {} as PriorityPredictResponse
 export const MLModelStatus = {} as MLHealthResponse

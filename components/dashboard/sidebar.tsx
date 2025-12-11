@@ -20,7 +20,6 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-sidebar border-r border-sidebar-border">
       <div className="flex flex-col flex-1 min-h-0">
-        {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
           <div className="h-9 w-9 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <Brain className="h-5 w-5 text-sidebar-primary-foreground" />
@@ -28,7 +27,6 @@ export function Sidebar() {
           <span className="text-lg font-semibold text-sidebar-foreground">ML Tasks</span>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
@@ -50,7 +48,6 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* User section */}
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3 px-2 py-2">
             <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center">

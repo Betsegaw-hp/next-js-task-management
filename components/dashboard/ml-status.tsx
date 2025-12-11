@@ -30,7 +30,6 @@ export function MLStatus({ status, isLoading }: MLStatusProps) {
     )
   }
 
-  // Backend returns: { status: string, models_loaded: boolean, details: object }
   const isHealthy = status?.status === "healthy" || status?.models_loaded === true
   const details = status?.details as Record<string, boolean> | undefined
 

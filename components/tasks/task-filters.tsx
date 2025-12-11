@@ -40,7 +40,6 @@ export function TaskFilters({
           </SelectContent>
         </Select>
 
-        {/* View Mode Toggle */}
         <div className="flex border rounded-md">
           <Button
             variant={viewMode === "grid" ? "secondary" : "ghost"}

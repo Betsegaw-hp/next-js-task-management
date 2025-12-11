@@ -132,6 +132,15 @@ export default function TasksPage() {
     setFormOpen(true)
   }
 
+  const handleRetask = (task: Task) => {
+    setEditingTask({ ...task, due_date: null })
+    setFormOpen(true)
+    toast({
+      title: "Retask mode",
+      description: "Set a new due date for this overdue task.",
+    })
+  }
+
   const handleDelete = (taskId: number) => {
     const task = tasks.find((t) => t.id === taskId)
     if (task) {
@@ -177,6 +186,7 @@ export default function TasksPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
+              onRetask={handleRetask}
             />
           ))}
         </div>
@@ -189,6 +199,7 @@ export default function TasksPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
+              onRetask={handleRetask}
             />
           ))}
         </div>

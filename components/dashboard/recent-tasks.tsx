@@ -10,14 +10,12 @@ interface RecentTasksProps {
   tasks: Task[]
 }
 
-// Safe date formatter that handles null/undefined/invalid dates
 function safeFormatDistance(dateString: string | null | undefined): string {
   if (!dateString) return "Recently"
   
   try {
     const date = new Date(dateString)
     
-    // Check if date is valid
     if (isNaN(date.getTime())) {
       return "Recently"
     }
@@ -29,7 +27,6 @@ function safeFormatDistance(dateString: string | null | undefined): string {
 }
 
 function getPriorityColor(priority: number): string {
-  // Backend priority scale is 0-2 (0=low, 1=medium, 2=high)
   if (priority === 0) return "bg-[var(--priority-low)]/20 text-[var(--priority-low)] border-[var(--priority-low)]/30"
   if (priority === 1)
     return "bg-[var(--priority-medium)]/20 text-[var(--priority-medium)] border-[var(--priority-medium)]/30"

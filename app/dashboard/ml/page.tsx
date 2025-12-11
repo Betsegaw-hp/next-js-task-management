@@ -17,8 +17,7 @@ export default function MLPage() {
   const [statusLoading, setStatusLoading] = useState(true)
   const { toast } = useToast()
 
-  // Completion Time Prediction (matching backend: description_length, priority 0-2, user_experience, is_complex)
-  const [ctPriority, setCtPriority] = useState("1") // 0=low, 1=medium, 2=high
+  const [ctPriority, setCtPriority] = useState("1")
   const [ctDescLength, setCtDescLength] = useState("100")
   const [ctUserExperience, setCtUserExperience] = useState("1")
   const [ctIsComplex, setCtIsComplex] = useState("false")
@@ -27,7 +26,6 @@ export default function MLPage() {
   const [ctPredicting, setCtPredicting] = useState(false)
   const [ctResult, setCtResult] = useState<{ hours: number } | null>(null)
 
-  // Priority Prediction (matching backend: text, days_until_due, status)
   const [ppDescription, setPpDescription] = useState("")
   const [ppDaysUntilDue, setPpDaysUntilDue] = useState("7")
   const [ppStatus, setPpStatus] = useState<"pending" | "in_progress" | "completed">("pending")
@@ -40,7 +38,6 @@ export default function MLPage() {
         const status = await mlApi.getHealth()
         setMlStatus(status)
       } catch {
-        // Models might not be available
       } finally {
         setStatusLoading(false)
       }
@@ -53,7 +50,7 @@ export default function MLPage() {
     try {
       const result = await mlApi.predictCompletionTime({
         description_length: Number.parseInt(ctDescLength),
-        priority: Number.parseInt(ctPriority), // 0=low, 1=medium, 2=high
+        priority: Number.parseInt(ctPriority),
         user_experience: Number.parseInt(ctUserExperience),
         is_complex: ctIsComplex === "true",
         days_until_due: Number.parseInt(ctDaysUntilDue),
@@ -88,7 +85,6 @@ export default function MLPage() {
         days_until_due: Number.parseInt(ppDaysUntilDue),
         status: ppStatus,
       })
-      // Get confidence for the predicted priority level
       const confidenceValue = result.confidence[result.predicted_priority as keyof typeof result.confidence] || 0
       setPpResult({ priority: result.predicted_priority, confidence: confidenceValue })
     } catch (error) {
@@ -102,7 +98,6 @@ export default function MLPage() {
     }
   }
 
-  // Helper to check if models are loaded from health response
   const isCompletionModelActive = mlStatus?.models_loaded || (mlStatus?.details as Record<string, boolean>)?.completion_model
   const isPriorityModelActive = mlStatus?.models_loaded || (mlStatus?.details as Record<string, boolean>)?.priority_model
 
@@ -115,7 +110,6 @@ export default function MLPage() {
         </p>
       </div>
 
-      {/* Model Status */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -164,7 +158,6 @@ export default function MLPage() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Completion Time Prediction */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -275,7 +268,6 @@ export default function MLPage() {
           </CardContent>
         </Card>
 
-        {/* Priority Prediction */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

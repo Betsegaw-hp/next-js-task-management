@@ -11,11 +11,9 @@ export function CookieConsent() {
   const [isAnimating, setIsAnimating] = useState(false)
 
   useEffect(() => {
-    // Small delay to prevent flash on page load
     const timer = setTimeout(() => {
       if (!hasCookieConsentBeenAsked()) {
         setShowBanner(true)
-        // Trigger entrance animation
         requestAnimationFrame(() => setIsAnimating(true))
       }
     }, 1000)
@@ -56,7 +54,6 @@ export function CookieConsent() {
       >
         <div className="p-6">
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-            {/* Icon & Text */}
             <div className="flex gap-4 flex-1">
               <div className="shrink-0">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
@@ -82,7 +79,6 @@ export function CookieConsent() {
               </div>
             </div>
 
-            {/* Buttons */}
             <div className="flex gap-3 shrink-0 w-full md:w-auto">
               <Button
                 variant="outline"
@@ -100,7 +96,6 @@ export function CookieConsent() {
             </div>
           </div>
 
-          {/* Cookie types info - optional expandable section */}
           <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <div className="flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5">
@@ -119,7 +114,6 @@ export function CookieConsent() {
           </div>
         </div>
 
-        {/* Close button */}
         <button
           onClick={handleDecline}
           className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"

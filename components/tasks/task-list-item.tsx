@@ -11,13 +11,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { type Task } from "@/lib/api"
 import { format, isPast } from "date-fns"
-import { Calendar, MoreVertical, Pencil, Trash2, ArrowRight, AlertTriangle } from "lucide-react"
+import { Calendar, MoreVertical, Pencil, Trash2, ArrowRight, AlertTriangle, RotateCcw } from "lucide-react"
 
 interface TaskListItemProps {
   task: Task
   onEdit: (task: Task) => void
   onDelete: (taskId: number) => void
   onStatusChange: (taskId: number, status: Task["status"]) => void
+  onRetask?: (task: Task) => void
 }
 
 function getPriorityColor(priority: number): string {
@@ -71,7 +72,7 @@ function safeFormatDate(dateString: string | null | undefined): string {
 
 const statusOrder: Task["status"][] = ["pending", "in_progress", "completed"]
 
-export function TaskListItem({ task, onEdit, onDelete, onStatusChange }: TaskListItemProps) {
+export function TaskListItem({ task, onEdit, onDelete, onStatusChange, onRetask }: TaskListItemProps) {
   const isOverdue = task.due_date && task.status !== "completed" && safeIsPast(task.due_date)
 
   const nextStatus = () => {
@@ -88,14 +89,12 @@ export function TaskListItem({ task, onEdit, onDelete, onStatusChange }: TaskLis
         isOverdue ? "border-destructive/50 bg-destructive/5" : "border-border/50 bg-card/50"
       }`}
     >
-      {/* Overdue indicator */}
       {isOverdue && (
         <div className="shrink-0">
           <AlertTriangle className="h-5 w-5 text-destructive" />
         </div>
       )}
 
-      {/* Title & Description */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h3 className={`font-medium truncate ${isOverdue ? "text-destructive" : ""}`}>
@@ -112,7 +111,6 @@ export function TaskListItem({ task, onEdit, onDelete, onStatusChange }: TaskLis
         )}
       </div>
 
-      {/* Due Date */}
       <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground shrink-0">
         {task.due_date && (
           <>
@@ -124,18 +122,25 @@ export function TaskListItem({ task, onEdit, onDelete, onStatusChange }: TaskLis
         )}
       </div>
 
-      {/* Priority Badge */}
       <Badge variant="outline" className={`shrink-0 ${getPriorityColor(task.priority)}`}>
         {getPriorityLabel(task.priority)}
       </Badge>
 
-      {/* Status Badge */}
       <Badge variant="outline" className={`shrink-0 ${getStatusColor(task.status)}`}>
         {formatStatus(task.status)}
       </Badge>
 
-      {/* Quick Status Change */}
-      {nextStatus() && (
+      {isOverdue && onRetask ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="hidden md:flex shrink-0 text-destructive hover:text-destructive"
+          onClick={() => onRetask(task)}
+        >
+          <RotateCcw className="h-4 w-4 mr-1" />
+          Retask
+        </Button>
+      ) : nextStatus() && (
         <Button
           variant="ghost"
           size="sm"
@@ -147,7 +152,6 @@ export function TaskListItem({ task, onEdit, onDelete, onStatusChange }: TaskLis
         </Button>
       )}
 
-      {/* Actions Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
@@ -159,7 +163,12 @@ export function TaskListItem({ task, onEdit, onDelete, onStatusChange }: TaskLis
             <Pencil className="h-4 w-4 mr-2" />
             Edit
           </DropdownMenuItem>
-          {nextStatus() && (
+          {isOverdue && onRetask ? (
+            <DropdownMenuItem onClick={() => onRetask(task)}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Retask
+            </DropdownMenuItem>
+          ) : nextStatus() && (
             <DropdownMenuItem onClick={() => onStatusChange(task.id, nextStatus()!)}>
               <ArrowRight className="h-4 w-4 mr-2" />
               Move to {formatStatus(nextStatus()!)}

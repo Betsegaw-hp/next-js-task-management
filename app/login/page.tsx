@@ -45,7 +45,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/20 via-background to-background p-12 flex-col justify-between">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
@@ -79,7 +78,6 @@ export default function LoginPage() {
         <p className="text-sm text-muted-foreground">© 2025 ML Task Manager. All rights reserved.</p>
       </div>
 
-      {/* Right side - Login Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur">
           <CardHeader className="space-y-1">

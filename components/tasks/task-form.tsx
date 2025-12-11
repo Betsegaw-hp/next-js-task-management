@@ -31,9 +31,10 @@ interface TaskFormProps {
 export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [priority, setPriority] = useState("1") // Default medium priority (0=low, 1=medium, 2=high)
+  const [priority, setPriority] = useState("1")
   const [dueDate, setDueDate] = useState("")
   const [status, setStatus] = useState<"pending" | "in_progress" | "completed">("pending")
+  const [userExperience, setUserExperience] = useState("1")
   const [isLoading, setIsLoading] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
   const { toast } = useToast()
@@ -45,12 +46,14 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
       setPriority(task.priority.toString())
       setDueDate(task.due_date || "")
       setStatus(task.status)
+      setUserExperience((task.user_experience || 1).toString())
     } else {
       setTitle("")
       setDescription("")
-      setPriority("1") // Default medium priority
+      setPriority("1")
       setDueDate("")
       setStatus("pending")
+      setUserExperience("1")
     }
   }, [task, open])
 
@@ -72,7 +75,6 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
         status,
       })
       setPriority(priorityLabelToString(result.predicted_priority))
-      // Get confidence for the predicted priority level
       const confidenceValue = result.confidence[result.predicted_priority as keyof typeof result.confidence] || 0
       toast({
         title: "Priority suggested",
@@ -100,6 +102,7 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
         priority: Number.parseInt(priority),
         due_date: dueDate || undefined,
         status,
+        user_experience: Number.parseInt(userExperience) || 1,
       })
       onOpenChange(false)
     } catch (error) {
@@ -199,6 +202,22 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
                 onChange={(e) => setDueDate(e.target.value)}
                 className="bg-input/50"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="userExperience">Experience (months)</Label>
+              <Input
+                id="userExperience"
+                type="number"
+                min="0"
+                value={userExperience}
+                onChange={(e) => setUserExperience(e.target.value)}
+                placeholder="Months of experience"
+                className="bg-input/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                How many months of experience do you have with this type of task?
+              </p>
             </div>
           </div>
 
