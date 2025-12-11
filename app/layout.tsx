@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/lib/auth-context"
 import { Toaster } from "@/components/ui/toaster"
+import { CookieConsent } from "@/components/cookie-consent"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -43,6 +44,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster />
+          <CookieConsent />
         </AuthProvider>
         <Analytics />
       </body>

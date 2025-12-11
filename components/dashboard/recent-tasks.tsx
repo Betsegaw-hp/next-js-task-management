@@ -10,9 +10,28 @@ interface RecentTasksProps {
   tasks: Task[]
 }
 
+// Safe date formatter that handles null/undefined/invalid dates
+function safeFormatDistance(dateString: string | null | undefined): string {
+  if (!dateString) return "Recently"
+  
+  try {
+    const date = new Date(dateString)
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "Recently"
+    }
+    
+    return formatDistanceToNow(date, { addSuffix: true })
+  } catch {
+    return "Recently"
+  }
+}
+
 function getPriorityColor(priority: number): string {
-  if (priority <= 3) return "bg-[var(--priority-low)]/20 text-[var(--priority-low)] border-[var(--priority-low)]/30"
-  if (priority <= 6)
+  // Backend priority scale is 0-2 (0=low, 1=medium, 2=high)
+  if (priority === 0) return "bg-[var(--priority-low)]/20 text-[var(--priority-low)] border-[var(--priority-low)]/30"
+  if (priority === 1)
     return "bg-[var(--priority-medium)]/20 text-[var(--priority-medium)] border-[var(--priority-medium)]/30"
   return "bg-[var(--priority-high)]/20 text-[var(--priority-high)] border-[var(--priority-high)]/30"
 }
@@ -56,7 +75,7 @@ export function RecentTasks({ tasks }: RecentTasksProps) {
                 <div className="flex-1 min-w-0 mr-4">
                   <p className="font-medium truncate">{task.title}</p>
                   <p className="text-sm text-muted-foreground">
-                    Created {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
+                    {task.due_date ? `Due ${safeFormatDistance(task.due_date)}` : "No due date"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

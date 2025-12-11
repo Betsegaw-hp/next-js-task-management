@@ -2,11 +2,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import type { MLModelStatus } from "@/lib/api"
+import type { MLHealthResponse } from "@/lib/api"
 import { Brain, CheckCircle2, XCircle } from "lucide-react"
 
 interface MLStatusProps {
-  status: MLModelStatus | null
+  status: MLHealthResponse | null
   isLoading: boolean
 }
 
@@ -30,9 +30,19 @@ export function MLStatus({ status, isLoading }: MLStatusProps) {
     )
   }
 
+  // Backend returns: { status: string, models_loaded: boolean, details: object }
+  const isHealthy = status?.status === "healthy" || status?.models_loaded === true
+  const details = status?.details as Record<string, boolean> | undefined
+
   const models = [
-    { name: "Completion Time Predictor", active: status?.completion_model ?? false },
-    { name: "Priority Suggester", active: status?.priority_model ?? false },
+    { 
+      name: "Completion Time Predictor", 
+      active: details?.completion_model ?? isHealthy 
+    },
+    { 
+      name: "Priority Suggester", 
+      active: details?.priority_model ?? isHealthy 
+    },
   ]
 
   return (
@@ -41,6 +51,17 @@ export function MLStatus({ status, isLoading }: MLStatusProps) {
         <CardTitle className="flex items-center gap-2">
           <Brain className="h-5 w-5 text-primary" />
           ML Models Status
+          {status && (
+            <Badge 
+              variant="outline" 
+              className={isHealthy 
+                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 ml-auto" 
+                : "bg-red-500/10 text-red-500 border-red-500/30 ml-auto"
+              }
+            >
+              {status.status || (isHealthy ? "Healthy" : "Unhealthy")}
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">

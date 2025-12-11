@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Download, Upload, Plus } from "lucide-react"
+import { Download, Upload, Plus, LayoutGrid, List } from "lucide-react"
+
+export type ViewMode = "grid" | "list"
 
 interface TaskFiltersProps {
   statusFilter: string
@@ -10,6 +12,8 @@ interface TaskFiltersProps {
   onCreateClick: () => void
   onExport: () => void
   onImport: () => void
+  viewMode: ViewMode
+  onViewModeChange: (mode: ViewMode) => void
 }
 
 export function TaskFilters({
@@ -18,6 +22,8 @@ export function TaskFilters({
   onCreateClick,
   onExport,
   onImport,
+  viewMode,
+  onViewModeChange,
 }: TaskFiltersProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -33,6 +39,28 @@ export function TaskFilters({
             <SelectItem value="completed">Completed</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* View Mode Toggle */}
+        <div className="flex border rounded-md">
+          <Button
+            variant={viewMode === "grid" ? "secondary" : "ghost"}
+            size="sm"
+            className="rounded-r-none"
+            onClick={() => onViewModeChange("grid")}
+            title="Grid view"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "secondary" : "ghost"}
+            size="sm"
+            className="rounded-l-none"
+            onClick={() => onViewModeChange("list")}
+            title="List view"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-2">

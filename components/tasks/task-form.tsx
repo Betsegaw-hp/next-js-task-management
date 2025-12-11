@@ -19,6 +19,7 @@ import {
 import { type Task, type CreateTaskInput, mlApi } from "@/lib/api"
 import { Loader2, Sparkles } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { calculateDaysUntilDue, priorityLabelToString } from "@/lib/customeUtils"
 
 interface TaskFormProps {
   open: boolean
@@ -30,7 +31,7 @@ interface TaskFormProps {
 export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [priority, setPriority] = useState("5")
+  const [priority, setPriority] = useState("1") // Default medium priority (0=low, 1=medium, 2=high)
   const [dueDate, setDueDate] = useState("")
   const [status, setStatus] = useState<"pending" | "in_progress" | "completed">("pending")
   const [isLoading, setIsLoading] = useState(false)
@@ -40,14 +41,14 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
   useEffect(() => {
     if (task) {
       setTitle(task.title)
-      setDescription(task.description)
+      setDescription(task.description || "")
       setPriority(task.priority.toString())
       setDueDate(task.due_date || "")
       setStatus(task.status)
     } else {
       setTitle("")
       setDescription("")
-      setPriority("5")
+      setPriority("1") // Default medium priority
       setDueDate("")
       setStatus("pending")
     }
@@ -66,14 +67,16 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
     setSuggesting(true)
     try {
       const result = await mlApi.predictPriority({
-        description,
-        due_date: dueDate || new Date().toISOString().split("T")[0],
+        text: description,
+        days_until_due: calculateDaysUntilDue(dueDate),
         status,
       })
-      setPriority(result.suggested_priority.toString())
+      setPriority(priorityLabelToString(result.predicted_priority))
+      // Get confidence for the predicted priority level
+      const confidenceValue = result.confidence[result.predicted_priority as keyof typeof result.confidence] || 0
       toast({
         title: "Priority suggested",
-        description: result.reasoning,
+        description: `Confidence: ${(confidenceValue * 100).toFixed(0)}%`,
       })
     } catch {
       toast({
@@ -147,18 +150,16 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="priority">Priority (1-10)</Label>
+                <Label htmlFor="priority">Priority</Label>
                 <div className="flex gap-2">
                   <Select value={priority} onValueChange={setPriority}>
                     <SelectTrigger className="bg-input/50">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      {[...Array(10)].map((_, i) => (
-                        <SelectItem key={i + 1} value={(i + 1).toString()}>
-                          {i + 1} - {i < 3 ? "Low" : i < 6 ? "Medium" : "High"}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="0">Low</SelectItem>
+                      <SelectItem value="1">Medium</SelectItem>
+                      <SelectItem value="2">High</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button

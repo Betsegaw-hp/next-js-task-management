@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { tasksApi, mlApi, type Task, type MLModelStatus } from "@/lib/api"
+import { tasksApi, mlApi, type Task, type MLHealthResponse } from "@/lib/api"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { RecentTasks } from "@/components/dashboard/recent-tasks"
 import { MLStatus } from "@/components/dashboard/ml-status"
@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([])
-  const [mlStatus, setMlStatus] = useState<MLModelStatus | null>(null)
+  const [mlStatus, setMlStatus] = useState<MLHealthResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [mlLoading, setMlLoading] = useState(true)
   const { toast } = useToast()
@@ -17,7 +17,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [tasksData, mlStatusData] = await Promise.all([tasksApi.list(), mlApi.getModelStatus().catch(() => null)])
+        const [tasksData, mlStatusData] = await Promise.all([tasksApi.list(), mlApi.getHealth().catch(() => null)])
         setTasks(tasksData)
         setMlStatus(mlStatusData)
       } catch (error) {

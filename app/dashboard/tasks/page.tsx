@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from "react"
 import { tasksApi, type Task, type CreateTaskInput } from "@/lib/api"
 import { TaskCard } from "@/components/tasks/task-card"
+import { TaskListItem } from "@/components/tasks/task-list-item"
 import { TaskForm } from "@/components/tasks/task-form"
-import { TaskFilters } from "@/components/tasks/task-filters"
+import { TaskFilters, type ViewMode } from "@/components/tasks/task-filters"
 import { ImportDialog } from "@/components/tasks/import-dialog"
 import { DeleteDialog } from "@/components/tasks/delete-dialog"
 import { useToast } from "@/hooks/use-toast"
@@ -14,6 +15,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState("all")
+  const [viewMode, setViewMode] = useState<ViewMode>("grid")
   const [formOpen, setFormOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -154,6 +156,8 @@ export default function TasksPage() {
         }}
         onExport={handleExport}
         onImport={() => setImportOpen(true)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {isLoading ? (
@@ -164,10 +168,22 @@ export default function TasksPage() {
         <div className="text-center py-12">
           <p className="text-muted-foreground">No tasks found. Create your first task!</p>
         </div>
-      ) : (
+      ) : viewMode === "grid" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {tasks.map((task) => (
             <TaskCard
+              key={task.id}
+              task={task}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onStatusChange={handleStatusChange}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {tasks.map((task) => (
+            <TaskListItem
               key={task.id}
               task={task}
               onEdit={handleEdit}

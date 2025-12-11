@@ -7,36 +7,37 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { mlApi, type MLModelStatus } from "@/lib/api"
+import { mlApi, type MLHealthResponse } from "@/lib/api"
 import { Brain, Clock, Target, Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 export default function MLPage() {
-  const [mlStatus, setMlStatus] = useState<MLModelStatus | null>(null)
+  const [mlStatus, setMlStatus] = useState<MLHealthResponse | null>(null)
   const [statusLoading, setStatusLoading] = useState(true)
   const { toast } = useToast()
 
-  // Completion Time Prediction
-  const [ctPriority, setCtPriority] = useState("5")
+  // Completion Time Prediction (matching backend: description_length, priority 0-2, user_experience, is_complex)
+  const [ctPriority, setCtPriority] = useState("1") // 0=low, 1=medium, 2=high
   const [ctDescLength, setCtDescLength] = useState("100")
-  const [ctHasDueDate, setCtHasDueDate] = useState("true")
+  const [ctUserExperience, setCtUserExperience] = useState("1")
+  const [ctIsComplex, setCtIsComplex] = useState("false")
   const [ctDaysUntilDue, setCtDaysUntilDue] = useState("7")
-  const [ctStatus, setCtStatus] = useState("pending")
+  const [ctStatus, setCtStatus] = useState<"pending" | "in_progress" | "completed">("pending")
   const [ctPredicting, setCtPredicting] = useState(false)
-  const [ctResult, setCtResult] = useState<{ hours: number; confidence: number } | null>(null)
+  const [ctResult, setCtResult] = useState<{ hours: number } | null>(null)
 
-  // Priority Prediction
+  // Priority Prediction (matching backend: text, days_until_due, status)
   const [ppDescription, setPpDescription] = useState("")
-  const [ppDueDate, setPpDueDate] = useState("")
-  const [ppStatus, setPpStatus] = useState("pending")
+  const [ppDaysUntilDue, setPpDaysUntilDue] = useState("7")
+  const [ppStatus, setPpStatus] = useState<"pending" | "in_progress" | "completed">("pending")
   const [ppPredicting, setPpPredicting] = useState(false)
-  const [ppResult, setPpResult] = useState<{ priority: number; reasoning: string } | null>(null)
+  const [ppResult, setPpResult] = useState<{ priority: string; confidence: number } | null>(null)
 
   useEffect(() => {
     async function fetchStatus() {
       try {
-        const status = await mlApi.getModelStatus()
+        const status = await mlApi.getHealth()
         setMlStatus(status)
       } catch {
         // Models might not be available
@@ -51,13 +52,14 @@ export default function MLPage() {
     setCtPredicting(true)
     try {
       const result = await mlApi.predictCompletionTime({
-        priority: Number.parseInt(ctPriority),
         description_length: Number.parseInt(ctDescLength),
-        has_due_date: ctHasDueDate === "true",
+        priority: Number.parseInt(ctPriority), // 0=low, 1=medium, 2=high
+        user_experience: Number.parseInt(ctUserExperience),
+        is_complex: ctIsComplex === "true",
         days_until_due: Number.parseInt(ctDaysUntilDue),
         status: ctStatus,
       })
-      setCtResult({ hours: result.predicted_hours, confidence: result.confidence })
+      setCtResult({ hours: result.predicted_hours })
     } catch (error) {
       toast({
         title: "Prediction failed",
@@ -82,11 +84,13 @@ export default function MLPage() {
     setPpPredicting(true)
     try {
       const result = await mlApi.predictPriority({
-        description: ppDescription,
-        due_date: ppDueDate || new Date().toISOString().split("T")[0],
+        text: ppDescription,
+        days_until_due: Number.parseInt(ppDaysUntilDue),
         status: ppStatus,
       })
-      setPpResult({ priority: result.suggested_priority, reasoning: result.reasoning })
+      // Get confidence for the predicted priority level
+      const confidenceValue = result.confidence[result.predicted_priority as keyof typeof result.confidence] || 0
+      setPpResult({ priority: result.predicted_priority, confidence: confidenceValue })
     } catch (error) {
       toast({
         title: "Prediction failed",
@@ -97,6 +101,10 @@ export default function MLPage() {
       setPpPredicting(false)
     }
   }
+
+  // Helper to check if models are loaded from health response
+  const isCompletionModelActive = mlStatus?.models_loaded || (mlStatus?.details as Record<string, boolean>)?.completion_model
+  const isPriorityModelActive = mlStatus?.models_loaded || (mlStatus?.details as Record<string, boolean>)?.priority_model
 
   return (
     <div className="space-y-6">
@@ -124,7 +132,7 @@ export default function MLPage() {
           ) : (
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                {mlStatus?.completion_model ? (
+                {isCompletionModelActive ? (
                   <CheckCircle2 className="h-5 w-5 text-[var(--status-completed)]" />
                 ) : (
                   <XCircle className="h-5 w-5 text-destructive" />
@@ -132,13 +140,24 @@ export default function MLPage() {
                 <span>Completion Time Model</span>
               </div>
               <div className="flex items-center gap-2">
-                {mlStatus?.priority_model ? (
+                {isPriorityModelActive ? (
                   <CheckCircle2 className="h-5 w-5 text-[var(--status-completed)]" />
                 ) : (
                   <XCircle className="h-5 w-5 text-destructive" />
                 )}
                 <span>Priority Model</span>
               </div>
+              {mlStatus?.status && (
+                <Badge 
+                  variant="outline" 
+                  className={mlStatus.status === "healthy" 
+                    ? "bg-emerald-500/10 text-emerald-500 ml-auto" 
+                    : "bg-amber-500/10 text-amber-500 ml-auto"
+                  }
+                >
+                  {mlStatus.status}
+                </Badge>
+              )}
             </div>
           )}
         </CardContent>
@@ -157,17 +176,15 @@ export default function MLPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Priority (1-10)</Label>
+                <Label>Priority Level</Label>
                 <Select value={ctPriority} onValueChange={setCtPriority}>
                   <SelectTrigger className="bg-input/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[...Array(10)].map((_, i) => (
-                      <SelectItem key={i + 1} value={(i + 1).toString()}>
-                        {i + 1}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="0">Low (0)</SelectItem>
+                    <SelectItem value="1">Medium (1)</SelectItem>
+                    <SelectItem value="2">High (2)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -176,6 +193,8 @@ export default function MLPage() {
                 <Label>Description Length</Label>
                 <Input
                   type="number"
+                  min="1"
+                  max="1000"
                   value={ctDescLength}
                   onChange={(e) => setCtDescLength(e.target.value)}
                   className="bg-input/50"
@@ -183,14 +202,28 @@ export default function MLPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Has Due Date</Label>
-                <Select value={ctHasDueDate} onValueChange={setCtHasDueDate}>
+                <Label>User Experience</Label>
+                <Select value={ctUserExperience} onValueChange={setCtUserExperience}>
                   <SelectTrigger className="bg-input/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="0">Beginner (0)</SelectItem>
+                    <SelectItem value="1">Intermediate (1)</SelectItem>
+                    <SelectItem value="2">Expert (2)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Is Complex Task?</Label>
+                <Select value={ctIsComplex} onValueChange={setCtIsComplex}>
+                  <SelectTrigger className="bg-input/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
                     <SelectItem value="false">No</SelectItem>
+                    <SelectItem value="true">Yes</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -204,20 +237,20 @@ export default function MLPage() {
                   className="bg-input/50"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={ctStatus} onValueChange={setCtStatus}>
-                <SelectTrigger className="bg-input/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={ctStatus} onValueChange={(v) => setCtStatus(v as "pending" | "in_progress" | "completed")}>
+                  <SelectTrigger className="bg-input/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <Button onClick={handlePredictCompletionTime} disabled={ctPredicting} className="w-full">
@@ -235,7 +268,7 @@ export default function MLPage() {
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-primary">{ctResult.hours.toFixed(1)} hours</p>
-                  <p className="text-sm text-muted-foreground">{(ctResult.confidence * 100).toFixed(0)}% confidence</p>
+                  <p className="text-sm text-muted-foreground">Estimated completion time</p>
                 </div>
               </div>
             )}
@@ -249,7 +282,7 @@ export default function MLPage() {
               <Target className="h-5 w-5 text-primary" />
               Suggest Priority
             </CardTitle>
-            <CardDescription>Get AI-suggested priority based on task description and due date</CardDescription>
+            <CardDescription>Get AI-suggested priority based on task description</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -265,18 +298,18 @@ export default function MLPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Due Date</Label>
+                <Label>Days Until Due</Label>
                 <Input
-                  type="date"
-                  value={ppDueDate}
-                  onChange={(e) => setPpDueDate(e.target.value)}
+                  type="number"
+                  value={ppDaysUntilDue}
+                  onChange={(e) => setPpDaysUntilDue(e.target.value)}
                   className="bg-input/50"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={ppStatus} onValueChange={setPpStatus}>
+                <Select value={ppStatus} onValueChange={(v) => setPpStatus(v as "pending" | "in_progress" | "completed")}>
                   <SelectTrigger className="bg-input/50">
                     <SelectValue />
                   </SelectTrigger>
@@ -306,17 +339,19 @@ export default function MLPage() {
                   <span className="text-lg">Suggested Priority:</span>
                   <Badge
                     className={
-                      ppResult.priority <= 3
+                      ppResult.priority === "low"
                         ? "bg-[var(--priority-low)]/20 text-[var(--priority-low)]"
-                        : ppResult.priority <= 6
+                        : ppResult.priority === "medium"
                           ? "bg-[var(--priority-medium)]/20 text-[var(--priority-medium)]"
                           : "bg-[var(--priority-high)]/20 text-[var(--priority-high)]"
                     }
                   >
-                    {ppResult.priority}
+                    {ppResult.priority.toUpperCase()}
                   </Badge>
                 </div>
-                <p className="text-sm text-center text-muted-foreground">{ppResult.reasoning}</p>
+                <p className="text-sm text-center text-muted-foreground">
+                  {(ppResult.confidence * 100).toFixed(0)}% confidence
+                </p>
               </div>
             )}
           </CardContent>

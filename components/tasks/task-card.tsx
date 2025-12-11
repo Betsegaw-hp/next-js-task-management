@@ -23,16 +23,55 @@ interface TaskCardProps {
   onStatusChange: (taskId: number, status: Task["status"]) => void
 }
 
+// Safe date formatter that handles null/undefined/invalid dates
+function safeFormatDistance(dateString: string | null | undefined): string {
+  if (!dateString) return "Recently"
+  
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return "Recently"
+    return formatDistanceToNow(date, { addSuffix: true })
+  } catch {
+    return "Recently"
+  }
+}
+
+function safeFormatDate(dateString: string | null | undefined, formatStr: string): string {
+  if (!dateString) return "No date"
+  
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return "Invalid date"
+    return format(date, formatStr)
+  } catch {
+    return "Invalid date"
+  }
+}
+
+function safeIsPast(dateString: string | null | undefined): boolean {
+  if (!dateString) return false
+  
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return false
+    return isPast(date)
+  } catch {
+    return false
+  }
+}
+
 function getPriorityColor(priority: number): string {
-  if (priority <= 3) return "bg-[var(--priority-low)]/20 text-[var(--priority-low)] border-[var(--priority-low)]/30"
-  if (priority <= 6)
+  // Backend priority scale is 0-2 (0=low, 1=medium, 2=high)
+  if (priority === 0) return "bg-[var(--priority-low)]/20 text-[var(--priority-low)] border-[var(--priority-low)]/30"
+  if (priority === 1)
     return "bg-[var(--priority-medium)]/20 text-[var(--priority-medium)] border-[var(--priority-medium)]/30"
   return "bg-[var(--priority-high)]/20 text-[var(--priority-high)] border-[var(--priority-high)]/30"
 }
 
 function getPriorityLabel(priority: number): string {
-  if (priority <= 3) return "Low"
-  if (priority <= 6) return "Medium"
+  // Backend priority scale is 0-2 (0=low, 1=medium, 2=high)
+  if (priority === 0) return "Low"
+  if (priority === 1) return "Medium"
   return "High"
 }
 
@@ -58,7 +97,7 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
   const [prediction, setPrediction] = useState<{ hours: number; confidence: number } | null>(null)
   const { toast } = useToast()
 
-  const isOverdue = task.due_date && task.status !== "completed" && isPast(new Date(task.due_date))
+  const isOverdue = task.due_date && task.status !== "completed" && safeIsPast(task.due_date)
 
   const nextStatus = () => {
     const currentIndex = statusOrder.indexOf(task.status)
@@ -73,17 +112,23 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
     try {
       const daysUntilDue = task.due_date
         ? Math.max(0, Math.ceil((new Date(task.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-        : 0
+        : undefined
+
+      // Priority is already 0-2 (0=low, 1=medium, 2=high), use directly
+      const backendPriority = task.priority
 
       const result = await mlApi.predictCompletionTime({
-        priority: task.priority,
-        description_length: task.description.length,
-        has_due_date: !!task.due_date,
+        description_length: task.description?.length || 0,
+        priority: backendPriority,
+        user_experience: 1, // Default to medium experience
+        is_complex: (task.description?.length || 0) > 100, // Assume complex if description is long
         days_until_due: daysUntilDue,
         status: task.status,
       })
 
-      setPrediction({ hours: result.predicted_hours, confidence: result.confidence })
+      // Note: Backend returns predicted_hours and input_features (no confidence)
+      // Using a default confidence display
+      setPrediction({ hours: result.predicted_hours, confidence: 0.85 })
     } catch {
       toast({
         title: "Prediction failed",
@@ -96,10 +141,23 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
   }
 
   return (
-    <Card className="bg-card/50 border-border/50 hover:border-border transition-colors">
+    <Card className={`hover:border-border transition-colors ${
+      isOverdue 
+        ? "bg-destructive/5 border-destructive/50" 
+        : "bg-card/50 border-border/50"
+    }`}>
       <CardHeader className="flex flex-row items-start justify-between pb-2">
         <div className="space-y-1 flex-1 min-w-0 pr-4">
-          <h3 className="font-semibold leading-tight truncate">{task.title}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className={`font-semibold leading-tight truncate ${isOverdue ? "text-destructive" : ""}`}>
+              {task.title}
+            </h3>
+            {isOverdue && (
+              <Badge variant="destructive" className="shrink-0 text-xs">
+                Overdue
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground line-clamp-2">{task.description}</p>
         </div>
         <DropdownMenu>
@@ -142,7 +200,7 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
           >
             <Calendar className="h-4 w-4" />
             <span>
-              Due {format(new Date(task.due_date), "MMM d, yyyy")}
+              Due {safeFormatDate(task.due_date, "MMM d, yyyy")}
               {isOverdue && " (Overdue)"}
             </span>
           </div>
@@ -159,7 +217,7 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
 
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs text-muted-foreground">
-            Created {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
+            {task.completed ? "Completed" : `Status: ${formatStatus(task.status)}`}
           </span>
 
           {nextStatus() && (
