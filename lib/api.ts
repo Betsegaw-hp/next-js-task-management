@@ -34,6 +34,7 @@ export interface User {
   avatar_url?: string | null
   oauth_provider?: string | null
   created_at?: string | null
+  has_password?: boolean | null
 }
 
 export interface OAuthProvider {

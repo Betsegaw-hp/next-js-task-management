@@ -249,8 +249,8 @@ export default function ProfilePage() {
     }
   }
 
-  const hasPassword = user?.oauth_provider === null || (user?.oauth_provider && user?.email)
-  const isOAuthOnly = user?.oauth_provider && !hasPassword
+  // Use the has_password field from the API
+  const hasPassword = user?.has_password ?? false
 
   return (
     <div className="space-y-6">
@@ -375,7 +375,7 @@ export default function ProfilePage() {
         <TabsContent value="security">
           <div className="space-y-6">
             {/* Change Password Card - Only show if user has a password */}
-            {!isOAuthOnly && (
+            {hasPassword && (
               <Card>
                 <CardHeader>
                   <CardTitle>Change Password</CardTitle>
@@ -426,8 +426,8 @@ export default function ProfilePage() {
               </Card>
             )}
 
-            {/* Set Password Card - Only show for OAuth-only users */}
-            {user?.oauth_provider && (
+            {/* Set Password Card - Only show for OAuth users without a password */}
+            {user?.oauth_provider && !hasPassword && (
               <Card>
                 <CardHeader>
                   <CardTitle>Set Password</CardTitle>
