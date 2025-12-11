@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -18,8 +18,15 @@ const navigation = [
 
 export function MobileNav() {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
+
+  const handleLogout = async () => {
+    await logout()
+    setOpen(false)
+    router.push("/login")
+  }
 
   return (
     <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur border-b border-border">
@@ -69,21 +76,28 @@ export function MobileNav() {
 
             <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-4">
               <div className="flex items-center gap-3 px-2 py-2">
-                <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center">
-                  <User className="h-5 w-5 text-sidebar-foreground/70" />
-                </div>
+                {user?.avatar_url ? (
+                  <img 
+                    src={user.avatar_url} 
+                    alt={user.username} 
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center">
+                    <User className="h-5 w-5 text-sidebar-foreground/70" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.username}</p>
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    {user?.full_name || user?.username}
+                  </p>
                   <p className="text-xs text-sidebar-foreground/60 truncate">{user?.email}</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 className="w-full justify-start mt-2 text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                onClick={() => {
-                  logout()
-                  setOpen(false)
-                }}
+                onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign out

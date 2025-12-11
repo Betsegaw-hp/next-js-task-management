@@ -30,6 +30,14 @@ export interface User {
   username: string
   email: string
   is_active: boolean
+  full_name?: string | null
+  avatar_url?: string | null
+  oauth_provider?: string | null
+}
+
+export interface OAuthProvider {
+  name: string
+  url: string
 }
 
 // TaskStatus enum
@@ -65,6 +73,7 @@ export type CreateTaskInput = TaskCreate
 
 export interface LoginResponse {
   access_token: string
+  refresh_token?: string
   token_type: string
 }
 
@@ -112,12 +121,36 @@ export function getToken(): string | null {
   return getCookie("auth_token")
 }
 
+export function getRefreshToken(): string | null {
+  return getCookie("refresh_token")
+}
+
 export function setToken(token: string): void {
-  setCookie("auth_token", token, 7)
+  setCookie("auth_token", token, 1) // Access token expires in 1 day (shorter for security)
+}
+
+export function setRefreshToken(token: string): void {
+  setCookie("refresh_token", token, 7) // Refresh token expires in 7 days
+}
+
+export function setTokens(accessToken: string, refreshToken?: string): void {
+  setToken(accessToken)
+  if (refreshToken) {
+    setRefreshToken(refreshToken)
+  }
 }
 
 export function removeToken(): void {
   deleteCookie("auth_token")
+}
+
+export function removeRefreshToken(): void {
+  deleteCookie("refresh_token")
+}
+
+export function removeAllTokens(): void {
+  deleteCookie("auth_token")
+  deleteCookie("refresh_token")
 }
 
 export function getCookieConsent(): boolean {
@@ -134,7 +167,7 @@ export function hasCookieConsentBeenAsked(): boolean {
   return getCookie("cookie_consent") !== null
 }
 
-async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function apiRequest<T>(endpoint: string, options: RequestInit = {}, retry = true): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -149,6 +182,23 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     ...options,
     headers,
   })
+
+  // Handle 401 - try to refresh token
+  if (response.status === 401 && retry) {
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      try {
+        const refreshResponse = await authApi.refreshToken(refreshToken)
+        setToken(refreshResponse.access_token)
+        // Retry the original request with the new token
+        return apiRequest<T>(endpoint, options, false)
+      } catch {
+        // Refresh failed, clear tokens
+        removeAllTokens()
+        throw new Error("Session expired. Please log in again.")
+      }
+    }
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Request failed" }))
@@ -190,6 +240,58 @@ export const authApi = {
 
   async getCurrentUser(): Promise<User> {
     return apiRequest<User>("/auth/me")
+  },
+
+  async refreshToken(refreshToken: string): Promise<LoginResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+
+    if (!response.ok) {
+      throw new Error("Token refresh failed")
+    }
+
+    return response.json()
+  },
+
+  async logout(refreshToken: string): Promise<void> {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
+    } catch {
+      // Ignore logout errors
+    }
+  },
+
+  async revokeToken(refreshToken: string): Promise<void> {
+    return apiRequest<void>("/auth/revoke", {
+      method: "POST",
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+  },
+
+  async revokeAllTokens(): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>("/auth/revoke-all", {
+      method: "POST",
+    })
+  },
+
+  async getOAuthProviders(): Promise<{ providers: string[] }> {
+    const response = await fetch(`${API_BASE_URL}/auth/providers`)
+    return response.json()
+  },
+
+  getOAuthUrl(provider: string): string {
+    return `${API_BASE_URL}/auth/oauth/${provider}`
   },
 }
 
